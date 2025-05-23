@@ -3,42 +3,79 @@ const { createClient } = require('@supabase/supabase-js');
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const TABLE = 'leaderboard';
+const DEBUG = process.env.DEBUG === 'true';
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
+function debugLog(...args) {
+  if (DEBUG) console.log('[DEBUG]', ...args);
+}
+
 exports.handler = async function(event, context) {
+  debugLog('Incoming request:', {
+    method: event.httpMethod,
+    path: event.path,
+    body: event.body,
+    query: event.queryStringParameters,
+  });
+  debugLog('Env:', {
+    SUPABASE_URL: SUPABASE_URL,
+    TABLE: TABLE,
+    DEBUG: DEBUG,
+    // Do not log SUPABASE_SERVICE_ROLE_KEY
+  });
+
   if (event.httpMethod === 'GET') {
     // Fetch leaderboard
-    const { data, error } = await supabase
-      .from(TABLE)
-      .select('name,score,date')
-      .order('score', { ascending: false })
-      .limit(50);
-    if (error) {
+    try {
+      const { data, error } = await supabase
+        .from(TABLE)
+        .select('name,score,date')
+        .order('score', { ascending: false })
+        .limit(50);
+      debugLog('GET result:', { data, error });
+      if (error) {
+        return {
+          statusCode: 500,
+          body: JSON.stringify({ error: error.message, details: error }),
+          headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+        };
+      }
+      return {
+        statusCode: 200,
+        body: JSON.stringify(data),
+        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+      };
+    } catch (e) {
+      debugLog('GET exception:', e);
       return {
         statusCode: 500,
-        body: error.message,
+        body: JSON.stringify({ error: e.message, stack: e.stack }),
         headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
       };
     }
-    return {
-      statusCode: 200,
-      body: JSON.stringify(data),
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
-    };
   } else if (event.httpMethod === 'POST') {
     try {
-      const { name, score } = JSON.parse(event.body);
+      let parsed;
+      try {
+        parsed = JSON.parse(event.body);
+      } catch (e) {
+        debugLog('POST JSON parse error:', e);
+        return { statusCode: 400, body: JSON.stringify({ error: 'Invalid JSON', details: e.message }) };
+      }
+      const { name, score } = parsed;
       if (!name || typeof score !== 'number') {
-        return { statusCode: 400, body: 'Invalid data' };
+        debugLog('POST validation error:', { name, score });
+        return { statusCode: 400, body: JSON.stringify({ error: 'Invalid data', details: { name, score } }) };
       }
       const { error } = await supabase
         .from(TABLE)
         .insert([{ name, score, date: new Date().toISOString() }]);
+      debugLog('POST insert result:', { error });
       if (error) {
         return {
           statusCode: 500,
-          body: error.message,
+          body: JSON.stringify({ error: error.message, details: error }),
           headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
         };
       }
@@ -48,7 +85,12 @@ exports.handler = async function(event, context) {
         headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
       };
     } catch (e) {
-      return { statusCode: 500, body: e.message };
+      debugLog('POST exception:', e);
+      return {
+        statusCode: 500,
+        body: JSON.stringify({ error: e.message, stack: e.stack }),
+        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+      };
     }
   } else if (event.httpMethod === 'OPTIONS') {
     // CORS preflight
@@ -58,6 +100,7 @@ exports.handler = async function(event, context) {
       body: '',
     };
   } else {
-    return { statusCode: 405, body: 'Method Not Allowed' };
+    debugLog('Method not allowed:', event.httpMethod);
+    return { statusCode: 405, body: JSON.stringify({ error: 'Method Not Allowed' }) };
   }
 }; 
