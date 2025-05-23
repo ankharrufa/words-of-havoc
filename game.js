@@ -22,7 +22,7 @@ let isMobileDevice = true; // Always use mobile interface
 
 // Leaderboard server settings
 const LEADERBOARD_SERVER_ENABLED = false; // Set to true if using the PHP leaderboard
-const LEADERBOARD_API_URL = 'leaderboard.php'; // Path to the PHP file
+const LEADERBOARD_API_URL = '/.netlify/functions/leaderboard'; // Path to the PHP file
 
 // Add event listeners when the document is loaded
 document.addEventListener('DOMContentLoaded', function() {
@@ -703,13 +703,15 @@ function checkGameCompletion() {
                 overallScore += levelScore;
                 currentLevelIndex++;
                 setTimeout(() => {
-                    // Update welcome screen with next level info
                     updateWelcomeScreenLevelInfo();
                     document.getElementById('welcome-screen').style.display = 'flex';
                 }, 1200);
             } else {
-                // Not enough score to promote
-                showPromotionMessage();
+                // Not enough score to promote, restart this stage only
+                setTimeout(() => {
+                    levelScore = 0;
+                    initializeGame();
+                }, 1200);
             }
         } else {
             // Game complete, show leaderboard
@@ -770,7 +772,7 @@ function showLeaderboard() {
         document.getElementById('play-again-btn').addEventListener('click', restartGame);
     }, 100);
     
-    renderLeaderboard();
+    fetchLeaderboardFromServer();
 }
 
 function showLeaderboardOnly() {
@@ -790,18 +792,11 @@ function showLeaderboardOnly() {
         document.getElementById('instructions').style.opacity = '0.2';
         document.getElementById('level-info').style.opacity = '0.2';
     }
-    
     document.getElementById('close-leaderboard-btn')?.removeEventListener('click', closeLeaderboard);
     setTimeout(() => {
         document.getElementById('close-leaderboard-btn').addEventListener('click', closeLeaderboard);
     }, 100);
-    
-    // Try to get fresh data from server
-    if (LEADERBOARD_SERVER_ENABLED && !window.FORCE_LOCAL_STORAGE) {
-        fetchLeaderboardFromServer();
-    } else {
-        renderLeaderboard();
-    }
+    fetchLeaderboardFromServer();
 }
 
 function closeLeaderboard() {
@@ -815,55 +810,38 @@ function closeLeaderboard() {
 
 function submitScore() {
     const name = document.getElementById('player-name').value.trim() || 'Anonymous';
-    const entry = { 
-        name, 
-        score: overallScore,
-        date: new Date().toISOString()
-    };
-    
-    leaderboard = getLeaderboard();
-    leaderboard.push(entry);
-    leaderboard.sort((a, b) => b.score - a.score);
-    leaderboard = leaderboard.slice(0, 50);
-    
-    // Save to localStorage
-    localStorage.setItem('wordsOfHavocLeaderboard', JSON.stringify(leaderboard));
-    
-    // If server is enabled and we're not on static hosting, try to submit the score there too
-    if (LEADERBOARD_SERVER_ENABLED && !window.FORCE_LOCAL_STORAGE) {
-        try {
-            fetch(LEADERBOARD_API_URL, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(entry)
-            })
-            .then(response => response.json())
-            .then(data => {
-                console.log('Server response:', data);
-                // Refresh leaderboard with server data
-                fetchLeaderboardFromServer();
-            })
-            .catch(error => {
-                console.error('Error submitting score to server:', error);
-                renderLeaderboard(); // Fallback to localStorage
-            });
-        } catch (error) {
-            console.error('Failed to submit score to server:', error);
-            renderLeaderboard(); // Fallback to localStorage
-        }
-    } else {
-        renderLeaderboard();
-    }
-    
+    const entry = { name, score: overallScore };
+    // Disable input and button
     document.getElementById('player-name').disabled = true;
     document.getElementById('submit-score-btn').disabled = true;
+    // Submit to server
+    fetch(LEADERBOARD_API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(entry)
+    })
+    .then(res => res.json())
+    .then(data => {
+        fetchLeaderboardFromServer();
+    })
+    .catch(err => {
+        document.getElementById('leaderboard-list').innerHTML = '<p style="color:red">Error submitting score.</p>';
+    });
 }
 
-function renderLeaderboard() {
-    leaderboard = getLeaderboard();
-    
+function fetchLeaderboardFromServer() {
+    fetch(LEADERBOARD_API_URL)
+        .then(res => res.json())
+        .then(data => {
+            renderLeaderboard(data);
+        })
+        .catch(err => {
+            document.getElementById('leaderboard-list').innerHTML = '<p style="color:red">Error loading leaderboard.</p>';
+        });
+}
+
+function renderLeaderboard(data) {
+    if (!Array.isArray(data)) data = [];
     const formatDate = (dateStr) => {
         if (!dateStr) return '';
         try {
@@ -873,47 +851,11 @@ function renderLeaderboard() {
             return '';
         }
     };
-    
-    const list = leaderboard.map((entry, i) => {
+    const list = data.map((entry, i) => {
         const dateStr = entry.date ? ` - ${formatDate(entry.date)}` : '';
         return `<div style='margin:2px 0;'>${i + 1}. <b>${entry.name}</b> - ${entry.score}${dateStr}</div>`;
     }).join('');
-    
     document.getElementById('leaderboard-list').innerHTML = `<h3>Top 50 Leaderboard</h3>${list || '<p>No scores yet. Be the first!</p>'}`;
-}
-
-function getLeaderboard() {
-    try {
-        return JSON.parse(localStorage.getItem('wordsOfHavocLeaderboard')) || [];
-    } catch {
-        return [];
-    }
-}
-
-function fetchLeaderboardFromServer() {
-    if (!LEADERBOARD_SERVER_ENABLED || window.FORCE_LOCAL_STORAGE) {
-        renderLeaderboard(); // Use local data
-        return;
-    }
-    
-    try {
-        fetch(LEADERBOARD_API_URL)
-            .then(response => response.json())
-            .then(data => {
-                if (Array.isArray(data)) {
-                    leaderboard = data;
-                    localStorage.setItem('wordsOfHavocLeaderboard', JSON.stringify(leaderboard));
-                    renderLeaderboard();
-                }
-            })
-            .catch(error => {
-                console.error('Error fetching leaderboard from server:', error);
-                renderLeaderboard(); // Fallback to localStorage
-            });
-    } catch (error) {
-        console.error('Failed to fetch leaderboard:', error);
-        renderLeaderboard(); // Fallback to localStorage
-    }
 }
 
 function playSound(id) {
