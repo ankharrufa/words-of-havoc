@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Words of Havoc</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        /* Additional styles for new UI elements */
+        #level-info {
+            margin: 10px 0;
+            font-size: 18px;
+            color: #e94560;
+            text-align: center;
+        }
+        #level-name {
+            font-weight: bold;
+        }
+        #level-tagline {
+            font-style: italic;
+        }
+        #overall-score, #level-display {
+            position: absolute;
+            font-size: 16px;
+            z-index: 5;
+        }
+        #overall-score {
+            top: 110px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+        #level-display {
+            top: 20px;
+            right: 20px;
+        }
+        #level-intro, #promotion-message, #leaderboard-section {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: rgba(16, 23, 42, 0.9);
+            padding: 20px;
+            border-radius: 10px;
+            z-index: 100;
+            text-align: center;
+            max-width: 80%;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+        }
+        /* Make sure word containers don't have visible borders */
+        #words-left, #words-right {
+            border: none !important; 
+        }
+        
+        /* Leaderboard styling */
+        #leaderboard-list {
+            max-height: 400px;
+            overflow-y: auto;
+            padding: 10px;
+            margin-top: 10px;
+            background-color: rgba(0, 0, 0, 0.3);
+            border-radius: 5px;
+        }
+        
+        #play-again-btn, #close-leaderboard-btn {
+            margin-left: 10px;
+            background-color: #4CAF50;
+        }
+        
+        #leaderboard-btn {
+            background-color: #2196F3;
+        }
+        
+        /* Mobile-friendly adjustments */
+        @media (max-width: 768px) {
+            .controls {
+                flex-direction: column;
+                gap: 10px;
+            }
+            
+            .word {
+                width: 100px;
+                font-size: 14px;
+            }
+            
+            #level-intro, #promotion-message, #leaderboard-section {
+                width: 90%;
+                max-width: 90%;
+                padding: 15px;
+            }
+            
+            #words-left, #words-right {
+                min-width: auto;
+                width: 45% !important;
+            }
+        }
+        
+        /* Modal styles for "How to Play" */
+        #how-to-play-modal {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: rgba(16, 23, 42, 0.95);
+            padding: 20px;
+            border-radius: 10px;
+            z-index: 101;
+            max-width: 80%;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+        }
+        
+        /* About modal */
+        #about-modal {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: rgba(16, 23, 42, 0.95);
+            padding: 20px;
+            border-radius: 10px;
+            z-index: 101;
+            max-width: 80%;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+        }
+        
+        .modal-close {
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            font-size: 24px;
+            color: #e94560;
+            cursor: pointer;
+        }
+        
+        /* Welcome level info */
+        .welcome-level-info {
+            margin-top: 20px;
+            margin-bottom: 30px;
+            padding: 15px;
+            background-color: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+        }
+        
+        .welcome-level-name {
+            font-size: 22px;
+            font-weight: bold;
+            color: #e94560;
+            margin-bottom: 10px;
+        }
+        
+        .welcome-level-tagline {
+            font-size: 16px;
+            font-style: italic;
+            color: #fff;
+        }
+    </style>
+</head>
+<body>
+    <!-- Welcome Screen -->
+    <div id="welcome-screen">
+        <div class="welcome-content">
+            <h1 class="welcome-title">Words of Havoc</h1>
+            <p class="welcome-subtitle">Vibe coded by Ahmed Kharrufa</p>
+            
+            <div class="welcome-level-info">
+                <div class="welcome-level-name">Level 1: Word Rookie</div>
+                <div class="welcome-level-tagline">Every siege starts with a simple word.</div>
+            </div>
+            
+            <div class="welcome-buttons">
+                <button id="welcome-start-btn" class="welcome-btn">Start Level</button>
+            </div>
+        </div>
+    </div>
+
+    <h1>Words of Havoc</h1>
+    <div class="controls">
+        <button id="restart-btn" class="control-btn">Restart</button>
+    </div>
+    <div id="level-info">
+        <span id="level-name"></span>
+        <span id="level-tagline"></span>
+    </div>
+    <div id="game-container">
+        <div id="score">Score: 0</div>
+        <div id="overall-score">Overall Score: 0</div>
+        <div id="level-display">Level: 1</div>
+        <div id="words-left" class="word-container"></div>
+        <div id="words-right" class="word-container"></div>
+    </div>
+    <div id="instructions">
+        1. Click and hold a word from the left to start aiming<br>
+        2. While holding, move your mouse to adjust direction and power<br>
+        3. The further your mouse, the more power (longer line = more power)<br>
+        4. Release the mouse button to shoot<br>
+        +1 point for correct matches, -1 for wrong ones<br>
+        <br>
+        <span style="color: #aaa; font-size: 14px;">Vibe coded by Ahmed Kharrufa</span>
+    </div>
+    
+    <!-- Burger Menu for Mobile -->
+    <div class="burger-menu" id="burger-menu">
+        <div class="burger-line"></div>
+        <div class="burger-line"></div>
+        <div class="burger-line"></div>
+    </div>
+    
+    <!-- Mobile Menu -->
+    <div class="mobile-menu" id="mobile-menu">
+        <div class="mobile-menu-close" id="mobile-menu-close">×</div>
+        <div class="mobile-menu-item" id="mobile-restart">Restart</div>
+        <div class="mobile-menu-item" id="mobile-leaderboard">Leaderboard</div>
+        <div class="mobile-menu-item" id="mobile-how-to-play">How to Play</div>
+        <div class="mobile-menu-item" id="mobile-about">About</div>
+    </div>
+    
+    <!-- How to Play Modal -->
+    <div id="how-to-play-modal">
+        <div class="modal-close">×</div>
+        <h2>How to Play Words of Havoc</h2>
+        <ol>
+            <li>Click and hold a word from the left to start aiming</li>
+            <li>While holding, move your mouse or finger to adjust direction and power</li>
+            <li>The further you drag, the more power (longer line = more power)</li>
+            <li>Release to shoot the word</li>
+            <li>Match words with their synonyms on the right side</li>
+            <li>Score +1 point for correct matches, -1 for incorrect ones</li>
+            <li>Complete each level with a positive score to advance</li>
+        </ol>
+    </div>
+    
+    <!-- About Modal -->
+    <div id="about-modal">
+        <div class="modal-close">×</div>
+        <h2>About Words of Havoc</h2>
+        <p>Words of Havoc is a word-matching game that tests your vocabulary knowledge across four increasingly difficult levels.</p>
+        <p>Each level has a unique theme:</p>
+        <ul>
+            <li><strong>Level 1: Word Rookie</strong> - "Every siege starts with a simple word."</li>
+            <li><strong>Level 2: Vocab Apprentice</strong> - "Learning the craft of word warfare."</li>
+            <li><strong>Level 3: Thesaurus Warrior</strong> - "Meaning must fall."</li>
+            <li><strong>Level 4: Semantic Reaper</strong> - "Aim where you smell dread. The right words fear you."</li>
+        </ul>
+        <p>Vibe coded by Ahmed Kharrufa</p>
+    </div>
+    
+    <div id="promotion-message" style="display:none;"></div>
+    <div id="leaderboard-section" style="display:none;"></div>
+    <!-- Audio elements for sound effects -->
+    <audio id="correct-sound" src="https://assets.mixkit.co/active_storage/sfx/951/951-preview.mp3" preload="auto"></audio>
+    <audio id="incorrect-sound" src="https://assets.mixkit.co/active_storage/sfx/270/270-preview.mp3" preload="auto"></audio>
+    <audio id="shoot-sound" src="https://assets.mixkit.co/active_storage/sfx/1368/1368-preview.mp3" preload="auto"></audio>
+    <audio id="game-complete-sound" src="https://assets.mixkit.co/active_storage/sfx/1983/1983-preview.mp3" preload="auto"></audio>
+    <!-- Load scripts -->
+    <script src="word-pairs.js"></script>
+    <script src="game.js"></script>
+</body>
+</html> 

@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Words of Havoc - PHP Deployment Guide</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            color: #333;
+        }
+        h1 {
+            color: #2a6478;
+            border-bottom: 2px solid #78412a;
+            padding-bottom: 10px;
+        }
+        h2 {
+            color: #78412a;
+            margin-top: 25px;
+        }
+        pre {
+            background-color: #f6f8fa;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+        }
+        code {
+            font-family: monospace;
+            background-color: #f0f0f0;
+            padding: 2px 4px;
+            border-radius: 3px;
+        }
+        .note {
+            background-color: #fff8dc;
+            padding: 10px 15px;
+            border-left: 4px solid #ffd700;
+            margin: 15px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>Words of Havoc - PHP Deployment Guide</h1>
+    
+    <p>This guide explains how to deploy Words of Havoc with a shared leaderboard using basic PHP hosting.</p>
+    
+    <h2>Simple Deployment Steps</h2>
+    <ol>
+        <li>Ensure your web hosting supports PHP (most shared hosting services do)</li>
+        <li>Edit <code>game.js</code> and set <code>LEADERBOARD_SERVER_ENABLED = true;</code></li>
+        <li>Upload all the game files to your hosting service, including <code>leaderboard.php</code></li>
+        <li>Make sure <code>leaderboard-data.json</code> file is writable by the server:
+            <pre>chmod 666 leaderboard-data.json</pre>
+            (If this file doesn't exist yet, it will be created automatically but the directory must be writable)
+        </li>
+        <li>Access your game by navigating to the index.html file on your server</li>
+    </ol>
+    
+    <div class="note">
+        <strong>Note:</strong> Your PHP hosting service needs to allow writing to files for the leaderboard to work.
+        Most shared hosting services allow this by default.
+    </div>
+    
+    <h2>Files You Need to Upload</h2>
+    <ul>
+        <li><code>index.html</code> - Main game HTML</li>
+        <li><code>game.js</code> - Game logic (with <code>LEADERBOARD_SERVER_ENABLED = true;</code>)</li>
+        <li><code>word-pairs.js</code> - Word data for the game</li>
+        <li><code>styles.css</code> - Game styling</li>
+        <li><code>leaderboard.php</code> - PHP script for the leaderboard</li>
+        <li>Any other asset files (sounds, images, etc.)</li>
+    </ul>
+    
+    <h2>Testing</h2>
+    <p>After deployment, test the leaderboard by:</p>
+    <ol>
+        <li>Playing a complete game</li>
+        <li>Submitting a score with your name</li>
+        <li>Checking if your score appears on the leaderboard</li>
+        <li>Verifying that a file called <code>leaderboard-data.json</code> was created on your server</li>
+    </ol>
+    
+    <h2>Troubleshooting</h2>
+    <ul>
+        <li>If the leaderboard doesn't save scores, check file permissions for <code>leaderboard-data.json</code></li>
+        <li>If you see "Failed to fetch" errors in the console, make sure PHP is properly configured on your server</li>
+        <li>Check server error logs for any PHP-related errors</li>
+    </ul>
+    
+    <p>That's it! Enjoy your game with a shared leaderboard without needing Node.js.</p>
+</body>
+</html> 

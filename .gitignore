@@ -1,0 +1,32 @@
+# Node modules
+node_modules/
+
+# Dependency lock files (optional, but usually keep these for reproducible builds)
+# package-lock.json
+# yarn.lock
+
+# Local environment variables
+.env
+.env.*
+
+# OS junk files
+.DS_Store
+Thumbs.db
+
+# Netlify build output (if any)
+dist/
+build/
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# VSCode settings
+.vscode/
+
+# Ignore service account or secret files if any
+*.secret.json
+*.key.json
+
+# Do NOT ignore Netlify Functions or source code! 
