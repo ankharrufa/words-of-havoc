@@ -24,6 +24,13 @@ let isMobileDevice = true; // Always use mobile interface
 const LEADERBOARD_SERVER_ENABLED = false; // Set to true if using the PHP leaderboard
 const LEADERBOARD_API_URL = '/.netlify/functions/leaderboard'; // Path to the PHP file
 
+// Store random positions for each word per level
+let leftWordPositions = [];
+let rightWordPositions = [];
+
+// Track last orientation for resize/orientation change
+let lastOrientation = window.innerWidth > window.innerHeight ? 'landscape' : 'portrait';
+
 // Add event listeners when the document is loaded
 document.addEventListener('DOMContentLoaded', function() {
     // Initialize welcome screen
@@ -268,6 +275,10 @@ function initializeGame() {
     leftWords = gameWords.map(pair => pair[0]);
     rightWords = shuffleArray([...gameWords.map(pair => pair[1])]);
 
+    // Store random positions for this level
+    leftWordPositions = leftWords.map((_, index) => getRandomPosition(true, index));
+    rightWordPositions = rightWords.map((_, index) => getRandomPosition(false, index));
+
     // Create aim line element
     const existingLine = document.getElementById('aim-line');
     if (existingLine) existingLine.remove();
@@ -281,19 +292,16 @@ function initializeGame() {
         wordElement.className = 'word word-left';
         wordElement.textContent = word;
         wordElement.dataset.word = word;
-        
-        // Directly set styles to ensure visibility
-        const pos = getRandomPosition(true, index);
+        // Use stored position
+        const pos = leftWordPositions[index];
         wordElement.style.position = 'absolute';
         wordElement.style.left = pos.left;
         wordElement.style.right = pos.right;
         wordElement.style.top = pos.top;
         wordElement.style.zIndex = '10';
         wordElement.style.backgroundColor = '#2a6478';
-        
         // Add mouse events
         wordElement.addEventListener('mousedown', (e) => startAiming(word, wordElement, e));
-        
         // Add direct touch events
         wordElement.addEventListener('touchstart', function(e) {
             if (e && e.touches && e.touches[0]) {
@@ -305,9 +313,7 @@ function initializeGame() {
                 });
             }
         }, { passive: false });
-        
         leftContainer.appendChild(wordElement);
-        
         // Smoother animation
         wordElement.style.opacity = '0';
         wordElement.style.transform = 'scale(0.9)';
@@ -316,29 +322,24 @@ function initializeGame() {
             wordElement.style.opacity = '1';
             wordElement.style.transform = 'scale(1)';
         }, index * 80);
-        
         // Dispatch event for touch handling
         dispatchWordCreatedEvent(wordElement);
     });
-    
     // Create right words with more direct styling
     rightWords.forEach((word, index) => {
         const wordElement = document.createElement('div');
         wordElement.className = 'word word-right';
         wordElement.textContent = word;
         wordElement.dataset.word = word;
-        
-        // Directly set styles to ensure visibility
-        const pos = getRandomPosition(false, index);
+        // Use stored position
+        const pos = rightWordPositions[index];
         wordElement.style.position = 'absolute';
         wordElement.style.left = pos.left;
         wordElement.style.right = pos.right;
         wordElement.style.top = pos.top;
         wordElement.style.zIndex = '10';
         wordElement.style.backgroundColor = '#78412a';
-        
         rightContainer.appendChild(wordElement);
-        
         // Smoother animation
         wordElement.style.opacity = '0';
         wordElement.style.transform = 'scale(0.9)';
@@ -348,7 +349,6 @@ function initializeGame() {
             wordElement.style.transform = 'scale(1)';
         }, (index + leftWords.length) * 80);
     });
-    
     // Reset level score
     levelScore = 0;
     updateScore();
@@ -900,41 +900,20 @@ window.addEventListener('load', () => {
 
 // Adjust the game for mobile view
 function adjustForMobile() {
-    // Recalculate positions of elements
     if (document.documentElement.clientWidth < document.documentElement.clientHeight) {
-        // Portrait mode - show a message to rotate
         alert("Please rotate your device to landscape mode for the best experience.");
     }
-    
-    // Update word positions if the game is already initialized
-    if (leftWords.length > 0) {
-        updateWordPositions();
-    }
 }
 
-// Handle screen resize
 function handleScreenResize() {
-    // Only update if we have active words
-    if (leftWords.length > 0) {
-        updateWordPositions();
+    const currentOrientation = window.innerWidth > window.innerHeight ? 'landscape' : 'portrait';
+    if (currentOrientation !== lastOrientation) {
+        lastOrientation = currentOrientation;
+        // Re-initialize the level to re-layout words for new orientation
+        initializeGame();
     }
+    // Otherwise, do nothing (no flicker)
 }
 
-// Update word positions after screen resize or orientation change
-function updateWordPositions() {
-    // Update left words
-    document.querySelectorAll('#words-left .word').forEach((wordElement, index) => {
-        const pos = getRandomPosition(true, index);
-        wordElement.style.left = pos.left;
-        wordElement.style.right = pos.right;
-        wordElement.style.top = pos.top;
-    });
-    
-    // Update right words
-    document.querySelectorAll('#words-right .word').forEach((wordElement, index) => {
-        const pos = getRandomPosition(false, index);
-        wordElement.style.left = pos.left;
-        wordElement.style.right = pos.right;
-        wordElement.style.top = pos.top;
-    });
-} 
+// Remove updateWordPositions function
+// ... existing code ... 
