@@ -814,6 +814,9 @@ function submitScore() {
     // Disable input and button
     document.getElementById('player-name').disabled = true;
     document.getElementById('submit-score-btn').disabled = true;
+    // Hide the name input and submit button after submit
+    document.getElementById('player-name').style.display = 'none';
+    document.getElementById('submit-score-btn').style.display = 'none';
     // Submit to server
     fetch(LEADERBOARD_API_URL, {
         method: 'POST',
@@ -853,7 +856,7 @@ function renderLeaderboard(data) {
     };
     const list = data.map((entry, i) => {
         const dateStr = entry.date ? ` - ${formatDate(entry.date)}` : '';
-        return `<div style='margin:2px 0;'>${i + 1}. <b>${entry.name}</b> - ${entry.score}${dateStr}</div>`;
+        return `<div style='margin:2px 0;'>${i + 1}. <b>${entry.name}</b>: ${entry.score}${dateStr}</div>`;
     }).join('');
     document.getElementById('leaderboard-list').innerHTML = `<h3>Top 50 Leaderboard</h3>${list || '<p>No scores yet. Be the first!</p>'}`;
 }
